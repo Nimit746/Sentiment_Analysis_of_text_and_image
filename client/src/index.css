@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+.bg-google {
+  background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDZ2w36FApN9wNvHv37a6xzKfqPo2ZqkFcHPcRMkcXfXwAr8YuSPDi4O9w5TzVD_zfMzp_wizEvqDOQTujaTXEnk8lgNontHehRREIoSTU0JfzD9R19SoXc7un7gUEKGLj5nGHlLKRDcrqDU01XQ0Wm-G_sd7hxyJLw7hl6v-dF1xFAUdw0XDaHBUyo9WjEHrlvLIUIV92KRpANwUm0KIbMxGt9bZ4Eak-1j4rv_0IyysEMekyWUr-5Fdz7MoI4u6zR6PsY9kBYRA8");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+::-webkit-scrollbar{
+  display: none;
+}
+
+.glass{
+  @apply rounded-2xl bg-white/20 backdrop-blur-2xl shadow-2xl px-4 py-2
+}
