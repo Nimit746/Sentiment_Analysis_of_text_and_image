@@ -9,7 +9,14 @@ from nltk.stem import WordNetLemmatizer
 from textblob import TextBlob
 import os
 import random
+import json
+import httpx
 from werkzeug.utils import secure_filename
+import sys
+import io
+from dotenv import load_dotenv
+load_dotenv()
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Download NLTK data
 try:
@@ -20,7 +27,7 @@ try:
 except:
     pass
 
-app = FastAPI(title="Multi-Modal Sentiment Analyzer API")
+app = FastAPI(title="Multi-Modal Sentiment Analyzer API with LLM")
 
 # CORS Configuration
 app.add_middleware(
@@ -38,9 +45,15 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# OpenRouter API Configuration
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')  # Set your API key in environment variable
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+LLM_MODEL = "deepseek/deepseek-chat"  # DeepSeek V3 model
+
 # Pydantic Models
 class TextRequest(BaseModel):
     text: str
+    use_llm: Optional[bool] = False  # Flag to use LLM analysis
 
 class SentimentResponse(BaseModel):
     success: bool
@@ -54,7 +67,7 @@ def allowed_file(filename: str) -> bool:
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-class RealisticSentimentAnalyzer:
+class LLMSentimentAnalyzer:
     def __init__(self):
         try:
             self.lemmatizer = WordNetLemmatizer()
@@ -67,8 +80,142 @@ class RealisticSentimentAnalyzer:
         self.positive_words = {'love', 'excellent', 'amazing', 'great', 'wonderful', 'fantastic', 'good', 'best', 'awesome', 'perfect'}
         self.negative_words = {'hate', 'terrible', 'awful', 'bad', 'worst', 'horrible', 'useless', 'disappointing', 'poor'}
         
+        # Check if OpenRouter API key is available
+        self.llm_available = bool(OPENROUTER_API_KEY)
+        if self.llm_available:
+            print("✅ OpenRouter API key found - DeepSeek V3 LLM analysis available")
+        else:
+            print("⚠️ OpenRouter API key not found - Using traditional analysis only")
+    
+    async def analyze_with_llm(self, text: str) -> dict:
+        """Analyze sentiment using OpenRouter API with DeepSeek V3"""
+        if not self.llm_available:
+            raise Exception("OpenRouter API key not configured")
+        
+        try:
+            prompt = f"""Analyze the sentiment of the following text and provide a detailed analysis in JSON format.
+
+Text: "{text}"
+
+Provide your analysis in the following JSON structure:
+{{
+    "sentiment": "positive/negative/neutral/mixed",
+    "confidence": 0.0-1.0,
+    "probabilities": {{
+        "positive": 0.0-1.0,
+        "negative": 0.0-1.0,
+        "neutral": 0.0-1.0,
+        "mixed": 0.0-1.0
+    }},
+    "emotion": "primary emotion detected",
+    "key_phrases": ["list", "of", "key phrases"],
+    "reasoning": "brief explanation of the sentiment analysis"
+}}
+
+Make sure probabilities sum to 1.0. Be accurate and nuanced in your analysis. Respond with ONLY the JSON, no additional text."""
+
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:8000",  # Optional, for rankings
+                "X-Title": "Sentiment Analyzer"  # Optional, for rankings
+            }
+            
+            payload = {
+                "model": LLM_MODEL,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert sentiment analysis assistant. Provide accurate, nuanced sentiment analysis in valid JSON format only. Do not include any text outside the JSON structure."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 1000,
+                "top_p": 1,
+                "frequency_penalty": 0,
+                "presence_penalty": 0
+            }
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(OPENROUTER_API_URL, headers=headers, json=payload)
+                response.raise_for_status()
+                
+                result = response.json()
+                llm_response = result['choices'][0]['message']['content']
+                
+                # Extract JSON from response (handle potential markdown code blocks)
+                llm_response = llm_response.strip()
+                if llm_response.startswith('```'):
+                    # Remove markdown code blocks
+                    llm_response = re.sub(r'^```json\s*', '', llm_response)
+                    llm_response = re.sub(r'^```\s*', '', llm_response)
+                    llm_response = re.sub(r'\s*```$', '', llm_response)
+                    llm_response = llm_response.strip()
+                
+                # Extract JSON from response
+                json_match = re.search(r'\{.*\}', llm_response, re.DOTALL)
+                if json_match:
+                    analysis = json.loads(json_match.group())
+                    
+                    # Ensure all required fields are present
+                    if 'sentiment' not in analysis:
+                        analysis['sentiment'] = 'neutral'
+                    if 'confidence' not in analysis:
+                        analysis['confidence'] = 0.5
+                    if 'probabilities' not in analysis:
+                        analysis['probabilities'] = {
+                            'positive': 0.25,
+                            'negative': 0.25,
+                            'neutral': 0.4,
+                            'mixed': 0.1
+                        }
+                    
+                    # Ensure all sentiment types are in probabilities
+                    for sentiment_type in ['positive', 'negative', 'neutral', 'mixed']:
+                        if sentiment_type not in analysis['probabilities']:
+                            analysis['probabilities'][sentiment_type] = 0.0
+                    
+                    # Normalize probabilities
+                    total = sum(analysis['probabilities'].values())
+                    if total > 0:
+                        analysis['probabilities'] = {
+                            k: round(v/total, 3) 
+                            for k, v in analysis['probabilities'].items()
+                        }
+                    
+                    # Add metadata
+                    analysis['type'] = 'text'
+                    analysis['model'] = 'llm'
+                    analysis['llm_model'] = LLM_MODEL
+                    analysis['llm_provider'] = 'openrouter'
+                    analysis['confidence'] = round(float(analysis['confidence']), 3)
+                    
+                    # Get TextBlob metrics for comparison
+                    blob = TextBlob(text)
+                    analysis['polarity'] = round(blob.sentiment.polarity, 3)
+                    analysis['subjectivity'] = round(blob.sentiment.subjectivity, 3)
+                    
+                    return analysis
+                else:
+                    raise Exception("Could not parse LLM response as JSON")
+                    
+        except httpx.HTTPError as e:
+            print(f"HTTP error calling OpenRouter API: {e}")
+            raise Exception(f"LLM API error: {str(e)}")
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            print(f"LLM Response was: {llm_response[:500]}")
+            raise Exception("Invalid JSON response from LLM")
+        except Exception as e:
+            print(f"LLM analysis error: {e}")
+            raise Exception(f"LLM analysis failed: {str(e)}")
+    
     def analyze_text_sentiment(self, text: str) -> dict:
-        """Analyze sentiment for text with enhanced accuracy"""
+        """Analyze sentiment for text with enhanced accuracy (traditional method)"""
         try:
             # Clean text
             text_lower = text.lower()
@@ -103,7 +250,8 @@ class RealisticSentimentAnalyzer:
                     'probabilities': probabilities,
                     'type': 'text',
                     'polarity': polarity,
-                    'subjectivity': subjectivity
+                    'subjectivity': subjectivity,
+                    'model': 'textblob'
                 }
             
             # Determine sentiment based on polarity
@@ -150,7 +298,8 @@ class RealisticSentimentAnalyzer:
                 'probabilities': {k: round(v, 3) for k, v in probabilities.items()},
                 'type': 'text',
                 'polarity': round(polarity, 3),
-                'subjectivity': round(subjectivity, 3)
+                'subjectivity': round(subjectivity, 3),
+                'model': 'textblob'
             }
         except Exception as e:
             print(f"Text analysis error: {e}")
@@ -162,7 +311,8 @@ class RealisticSentimentAnalyzer:
             'sentiment': 'neutral',
             'confidence': 0.5,
             'probabilities': {'positive': 0.25, 'negative': 0.25, 'neutral': 0.4, 'mixed': 0.1},
-            'type': 'text'
+            'type': 'text',
+            'model': 'fallback'
         }
     
     async def analyze_image_sentiment(self, image_file: UploadFile) -> dict:
@@ -301,7 +451,8 @@ class RealisticSentimentAnalyzer:
             'emotion': emotion,
             'probabilities': probabilities,
             'file_size': file_size,
-            'detail_level': detail
+            'detail_level': detail,
+            'model': 'image_heuristic'
         }
     
     def fallback_image_analysis(self) -> dict:
@@ -311,15 +462,41 @@ class RealisticSentimentAnalyzer:
             'confidence': 0.5,
             'type': 'image',
             'emotion': 'unknown',
-            'probabilities': {'positive': 0.25, 'negative': 0.25, 'neutral': 0.4, 'mixed': 0.1}
+            'probabilities': {'positive': 0.25, 'negative': 0.25, 'neutral': 0.4, 'mixed': 0.1},
+            'model': 'fallback'
         }
 
 # Initialize analyzer
-analyzer = RealisticSentimentAnalyzer()
+analyzer = LLMSentimentAnalyzer()
 
 @app.get('/')
 async def root():
-    return {"message": "Multi-Modal Sentiment Analyzer API", "status": "running"}
+    return {
+        "message": "Multi-Modal Sentiment Analyzer API with DeepSeek V3",
+        "status": "running",
+        "llm_available": analyzer.llm_available,
+        "llm_model": LLM_MODEL if analyzer.llm_available else None,
+        "llm_provider": "OpenRouter (DeepSeek V3)" if analyzer.llm_available else None,
+        "endpoints": [
+            "/analyze/text (supports use_llm flag)",
+            "/analyze/text/llm (LLM-only endpoint)",
+            "/analyze/image",
+            "/analyze/both",
+            "/health",
+            "/llm/status"
+        ]
+    }
+
+@app.get('/llm/status')
+async def llm_status():
+    """Check LLM availability status"""
+    return {
+        "llm_available": analyzer.llm_available,
+        "llm_model": LLM_MODEL if analyzer.llm_available else None,
+        "llm_provider": "OpenRouter" if analyzer.llm_available else None,
+        "api_key_configured": bool(OPENROUTER_API_KEY),
+        "message": "DeepSeek V3 ready via OpenRouter" if analyzer.llm_available else "Configure OPENROUTER_API_KEY environment variable"
+    }
 
 @app.post('/analyze/text')
 async def analyze_text_sentiment(request: TextRequest):
@@ -332,7 +509,16 @@ async def analyze_text_sentiment(request: TextRequest):
         if len(text) > 5000:
             raise HTTPException(status_code=400, detail='Text too long (max 5000 characters)')
         
-        result = analyzer.analyze_text_sentiment(text)
+        # Check if LLM analysis is requested
+        if request.use_llm:
+            if not analyzer.llm_available:
+                raise HTTPException(
+                    status_code=503, 
+                    detail='LLM not available. Configure OPENROUTER_API_KEY environment variable.'
+                )
+            result = await analyzer.analyze_with_llm(text)
+        else:
+            result = analyzer.analyze_text_sentiment(text)
         
         return {
             'success': True,
@@ -344,7 +530,39 @@ async def analyze_text_sentiment(request: TextRequest):
         raise
     except Exception as e:
         print(f"Error in text analysis: {e}")
-        raise HTTPException(status_code=500, detail='Internal server error')
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post('/analyze/text/llm')
+async def analyze_text_with_llm(request: TextRequest):
+    """Dedicated endpoint for LLM-based text analysis using DeepSeek V3"""
+    try:
+        text = request.text.strip()
+        
+        if not text:
+            raise HTTPException(status_code=400, detail='No text provided')
+        
+        if len(text) > 5000:
+            raise HTTPException(status_code=400, detail='Text too long (max 5000 characters)')
+        
+        if not analyzer.llm_available:
+            raise HTTPException(
+                status_code=503, 
+                detail='LLM not available. Configure OPENROUTER_API_KEY environment variable.'
+            )
+        
+        result = await analyzer.analyze_with_llm(text)
+        
+        return {
+            'success': True,
+            'text': text[:100] + ('...' if len(text) > 100 else ''),
+            'result': result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in LLM text analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/analyze/image')
 async def analyze_image_sentiment(image: UploadFile = File(...)):
@@ -383,7 +601,8 @@ async def analyze_image_sentiment(image: UploadFile = File(...)):
 @app.post('/analyze/both')
 async def analyze_both(
     text: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None)
+    image: Optional[UploadFile] = File(None),
+    use_llm: Optional[bool] = Form(False)
 ):
     """Analyze both text and image together"""
     try:
@@ -393,7 +612,16 @@ async def analyze_both(
             text = text.strip()
             if len(text) > 5000:
                 raise HTTPException(status_code=400, detail='Text too long (max 5000 characters)')
-            results['text'] = analyzer.analyze_text_sentiment(text)
+            
+            if use_llm:
+                if not analyzer.llm_available:
+                    raise HTTPException(
+                        status_code=503, 
+                        detail='LLM not available. Configure OPENROUTER_API_KEY environment variable.'
+                    )
+                results['text'] = await analyzer.analyze_with_llm(text)
+            else:
+                results['text'] = analyzer.analyze_text_sentiment(text)
         
         if image and image.filename:
             if not allowed_file(image.filename):
@@ -423,11 +651,21 @@ async def analyze_both(
 
 @app.get('/health')
 async def health():
-    return {'status': 'healthy'}
+    return {
+        'status': 'healthy',
+        'llm_available': analyzer.llm_available,
+        'llm_provider': 'OpenRouter (DeepSeek V3)' if analyzer.llm_available else None
+    }
 
 if __name__ == '__main__':
     import uvicorn
-    print("🚀 Starting Multi-Modal Sentiment Analyzer...")
-    print("📍 Server running at: http://localhost:8000")
-    print("⚡ Press CTRL+C to stop")
+    print("=" * 60)
+    print("Starting Multi-Modal Sentiment Analyzer with DeepSeek V3...")
+    print("Server running at: http://localhost:8000")
+    print(f"LLM Status: {'DeepSeek V3 Available' if analyzer.llm_available else 'Not Configured'}")
+    if not analyzer.llm_available:
+        print("To enable LLM: Set OPENROUTER_API_KEY environment variable")
+        print("Get your key at: https://openrouter.ai/keys")
+    print("Press CTRL+C to stop")
+    print("=" * 60)
     uvicorn.run(app, host='0.0.0.0', port=8000, reload=True)
