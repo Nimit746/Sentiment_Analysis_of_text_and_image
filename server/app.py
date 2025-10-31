@@ -660,13 +660,19 @@ async def health():
 
 if __name__ == '__main__':
     import uvicorn
+    import os
+    
+    port = int(os.environ.get("PORT", 8000))
+    host = "0.0.0.0"
+    
     print("=" * 60)
     print("Starting Multi-Modal Sentiment Analyzer with DeepSeek V3...")
-    print("Server running at: http://localhost:8000")
+    print(f"Server running at: http://{host}:{port}")
     print(f"LLM Status: {'DeepSeek V3 Available' if analyzer.llm_available else 'Not Configured'}")
     if not analyzer.llm_available:
         print("To enable LLM: Set OPENROUTER_API_KEY environment variable")
         print("Get your key at: https://openrouter.ai/keys")
     print("Press CTRL+C to stop")
     print("=" * 60)
-    uvicorn.run(app, host='0.0.0.0', port=8000, reload=True)
+    
+    uvicorn.run(app, host=host, port=port)
