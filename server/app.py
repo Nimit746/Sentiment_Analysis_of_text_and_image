@@ -29,7 +29,7 @@ except:
 
 app = FastAPI(title="Multi-Modal Sentiment Analyzer API with LLM")
 # Line 29-35: Update CORS Configuration
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+FRONTEND_URL = os.getenv('FRONTEND_URL', '')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_URL, "https://*.netlify.app"],  # Add Netlify domains
