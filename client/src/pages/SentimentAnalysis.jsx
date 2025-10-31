@@ -16,7 +16,7 @@ const SentimentAnalysis = () => {
     const [useLLM, setUseLLM] = useState(false);
 
     // Updated API base URL - try localhost:8000 first
-    const API_BASE_URL = 'http://localhost:8000';
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
     const examples = [
         "I love this product! It's amazing! 😊",
