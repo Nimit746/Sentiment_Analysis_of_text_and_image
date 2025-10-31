@@ -471,6 +471,7 @@ Make sure probabilities sum to 1.0. Be accurate and nuanced in your analysis. Re
 analyzer = LLMSentimentAnalyzer()
 
 @app.get('/')
+@app.head('/')
 async def root():
     return {
         "message": "Multi-Modal Sentiment Analyzer API with DeepSeek V3",
