@@ -1,13 +1,25 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 
 const Navbar = () => {
-
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
+
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+
+    const handleNavClick = (path) => {
+        setIsMenuOpen(false);
+        navigate(path);
+    };
+
     return (
-        <nav className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#362348] px-4 sm:px-10 py-3 transition-al bg-[#1a1122]">
-            <div className="flex items-center gap-3 sm:gap-4 text-white">
-                <div className="size-4 transition-transform hover:scale-110">
+        <nav className="flex items-center justify-between border-b border-solid border-b-[#362348] px-4 sm:px-6 lg:px-10 py-3 bg-[#1a1122] relative">
+            {/* Logo Section */}
+            <div className="flex items-center gap-2 sm:gap-3 text-white z-50">
+                <div className="size-8 sm:size-10 transition-transform hover:scale-110">
                     <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
                             fillRule="evenodd"
@@ -23,18 +35,82 @@ const Navbar = () => {
                         />
                     </svg>
                 </div>
-                <h2 className="text-white text-base sm:text-lg font-bold leading-tight tracking-[-0.015em]">Sentiment Analyzer</h2>
+                <h2 className="text-white text-sm sm:text-base lg:text-lg font-bold leading-tight tracking-[-0.015em]">
+                    Sentiment Analyzer
+                </h2>
             </div>
-            <div className="flex flex-1 justify-end gap-4 sm:gap-8">
-                <div className="hidden md:flex items-center gap-6 lg:gap-9">
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex flex-1 justify-end gap-4 xl:gap-8">
+                <div className="flex items-center gap-6 xl:gap-9">
                     <Link className="text-white text-sm font-medium leading-normal hover:text-[#8013ec] transition-colors" to="/">Home</Link>
                     <Link className="text-white text-sm font-medium leading-normal hover:text-[#8013ec] transition-colors" to="/about">About</Link>
                     <Link className="text-white text-sm font-medium leading-normal hover:text-[#8013ec] transition-colors" to="/contact">Contact</Link>
                     <Link className="text-white text-sm font-medium leading-normal hover:text-[#8013ec] transition-colors" to="/sentiment-analysis">Try Out</Link>
                 </div>
-                <button className="flex min-w-[70px] sm:min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-9 sm:h-10 px-3 sm:px-4 bg-[#362348] text-white text-xs sm:text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#4a2f5c] transition-all hover:scale-105" onClick={() => navigate("/signup")}>
+                <button
+                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#362348] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#4a2f5c] transition-all hover:scale-105"
+                    onClick={() => navigate("/signup")}
+                >
                     <span className="truncate">Sign Up</span>
                 </button>
+            </div>
+
+            {/* Mobile Menu Button & Sign Up */}
+            <div className="flex lg:hidden items-center gap-3 z-50">
+                <button
+                    className="flex min-w-[70px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-9 px-3 bg-[#362348] text-white text-xs font-bold leading-normal tracking-[0.015em] hover:bg-[#4a2f5c] transition-all"
+                    onClick={() => navigate("/signup")}
+                >
+                    <span className="truncate">Sign Up</span>
+                </button>
+                <button
+                    onClick={toggleMenu}
+                    className="text-white p-2 hover:bg-[#362348] rounded-lg transition-colors"
+                    aria-label="Toggle menu"
+                >
+                    {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
+            </div>
+
+            {/* Mobile Menu Overlay */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={toggleMenu}></div>
+            )}
+
+            {/* Mobile Navigation Menu */}
+            <div className={`fixed top-[57px] right-0 w-64 h-[calc(100vh-57px)] bg-[#1a1122] border-l border-[#362348] transform transition-transform duration-300 ease-in-out z-40 lg:hidden ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}>
+                <div className="flex flex-col p-6 gap-6">
+                    <Link
+                        className="text-white text-base font-medium leading-normal hover:text-[#8013ec] transition-colors py-2"
+                        to="/"
+                        onClick={() => handleNavClick('/')}
+                    >
+                        Home
+                    </Link>
+                    <Link
+                        className="text-white text-base font-medium leading-normal hover:text-[#8013ec] transition-colors py-2"
+                        to="/about"
+                        onClick={() => handleNavClick('/about')}
+                    >
+                        About
+                    </Link>
+                    <Link
+                        className="text-white text-base font-medium leading-normal hover:text-[#8013ec] transition-colors py-2"
+                        to="/contact"
+                        onClick={() => handleNavClick('/contact')}
+                    >
+                        Contact
+                    </Link>
+                    <Link
+                        className="text-white text-base font-medium leading-normal hover:text-[#8013ec] transition-colors py-2"
+                        to="/sentiment-analysis"
+                        onClick={() => handleNavClick('/sentiment-analysis')}
+                    >
+                        Try Out
+                    </Link>
+                </div>
             </div>
         </nav>
     )
