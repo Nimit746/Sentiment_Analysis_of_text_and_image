@@ -38,7 +38,7 @@ const Home = () => {
             />
             <section className='mt-30 flex flex-col gap-10 text-white'>
                 <h1 className='text-3xl font-bold'>Visual Demo</h1>
-                <video src="/public/Demo_video.mp4" alt="Demo Video" controls className='rounded-xl min-h-[60vh]'/>
+                <video src="Demo_video.mp4" alt="Demo Video" controls className='rounded-xl min-h-[60vh]'/>
             </section>
             <Footer/>
         </main>
