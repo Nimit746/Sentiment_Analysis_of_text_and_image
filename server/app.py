@@ -33,7 +33,7 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://moodlens.netlify.app')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        FRONTEND_URL,  # Your production frontend
+        "https://moodlens.netlify.app",  # Your production frontend
         "http://localhost:3000",          # Local development
         "http://localhost:5173",          # Vite default port
     ],
