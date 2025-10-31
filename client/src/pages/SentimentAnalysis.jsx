@@ -281,7 +281,7 @@ const SentimentAnalysis = () => {
             {/* LLM Model Badge */}
             {result.model === 'llm' && (
                 <div className="px-4 pb-2">
-                    <div className="inline-flex items-center gap-2 bg-linear-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full">
+                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full">
                         <span className="text-white text-xs font-bold">🤖 Powered by DeepSeek V3</span>
                     </div>
                 </div>
@@ -297,7 +297,7 @@ const SentimentAnalysis = () => {
                 </div>
                 <div className="rounded-full bg-[#4d3267] overflow-hidden shadow-inner">
                     <div
-                        className="h-3 rounded-full bg-linear-to-r from-[#8013ec] to-[#9124ff] transition-all duration-1000 ease-out shadow-lg"
+                        className="h-3 rounded-full bg-gradient-to-r from-[#8013ec] to-[#9124ff] transition-all duration-1000 ease-out shadow-lg"
                         style={{
                             width: `${(result.confidence * 100).toFixed(0)}%`,
                             boxShadow: '0 0 20px rgba(128, 19, 236, 0.5)'
@@ -436,7 +436,7 @@ const SentimentAnalysis = () => {
                             )}
                             {results.text.model === 'llm' && (
                                 <div className="mt-2">
-                                    <span className="inline-flex items-center gap-2 bg-linear-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full text-xs text-white font-bold">
+                                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full text-xs text-white font-bold">
                                         🤖 DeepSeek V3
                                     </span>
                                 </div>
@@ -571,6 +571,55 @@ const SentimentAnalysis = () => {
                                     {(text || result) && (
                                         <button
                                             onClick={clearText}
+                                            disabled={loading}
+                                            className="flex min-w-[84px] max-w-[200px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-6 bg-[#362348] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#4a2f5c] transition-all hover:scale-105 disabled:opacity-50"
+                                        >
+                                            <span className="truncate">Clear</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+
+                        {/* IMAGE MODE */}
+                        {currentMode === 'image' && (
+                            <div className="space-y-4">
+                                <div className="px-4">
+                                    <div
+                                        onClick={() => document.getElementById('imageFileInput').click()}
+                                        className="border-2 border-dashed border-[#4a2f5c] rounded-xl p-8 text-center cursor-pointer hover:border-[#8013ec] transition-all hover:bg-[#362348]/30"
+                                    >
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                                        ) : (
+                                            <div>
+                                                <p className="text-white text-lg font-semibold mb-2">📁 Upload an Image</p>
+                                                <p className="text-white/60 text-sm">Click to select or drag and drop</p>
+                                                <p className="text-white/40 text-xs mt-2">Supported: JPG, PNG, GIF, BMP (Max 10MB)</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <input
+                                        id="imageFileInput"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                    />
+                                </div>
+
+                                <div className="flex px-4 py-3 justify-center gap-3">
+                                    <button
+                                        onClick={analyzeImage}
+                                        disabled={loading || !imageFile}
+                                        className="flex min-w-[84px] max-w-[200px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-6 bg-[#8013ec] text-white text-sm font-bold leading-normal tracking-[0.015em] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#9124ff] transition-all hover:scale-105 hover:shadow-lg hover:shadow-[#8013ec]/50"
+                                    >
+                                        <span className="truncate">{loading ? 'Analyzing...' : 'Analyze Image'}</span>
+                                    </button>
+                                    {(imageFile || result) && (
+                                        <button
+                                            onClick={clearImage}
                                             disabled={loading}
                                             className="flex min-w-[84px] max-w-[200px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-6 bg-[#362348] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#4a2f5c] transition-all hover:scale-105 disabled:opacity-50"
                                         >
