@@ -32,12 +32,15 @@ app = FastAPI(title="Multi-Modal Sentiment Analyzer API with LLM")
 FRONTEND_URL = os.getenv('FRONTEND_URL', '')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "https://*.netlify.app"],  # Add Netlify domains
+    allow_origins=[
+        FRONTEND_URL,  # Your production frontend
+        "http://localhost:3000",          # Local development
+        "http://localhost:5173",          # Vite default port
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
 
 # Configure upload settings
 UPLOAD_FOLDER = 'uploads'
