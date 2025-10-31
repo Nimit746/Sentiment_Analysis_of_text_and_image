@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -281,7 +280,7 @@ const SentimentAnalysis = () => {
             {/* LLM Model Badge */}
             {result.model === 'llm' && (
                 <div className="px-4 pb-2">
-                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full">
+                    <div className="inline-flex items-center gap-2 bg-linear-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full">
                         <span className="text-white text-xs font-bold">🤖 Powered by DeepSeek V3</span>
                     </div>
                 </div>
@@ -297,7 +296,7 @@ const SentimentAnalysis = () => {
                 </div>
                 <div className="rounded-full bg-[#4d3267] overflow-hidden shadow-inner">
                     <div
-                        className="h-3 rounded-full bg-gradient-to-r from-[#8013ec] to-[#9124ff] transition-all duration-1000 ease-out shadow-lg"
+                        className="h-3 rounded-full bg-linear-to-r from-[#8013ec] to-[#9124ff] transition-all duration-1000 ease-out shadow-lg"
                         style={{
                             width: `${(result.confidence * 100).toFixed(0)}%`,
                             boxShadow: '0 0 20px rgba(128, 19, 236, 0.5)'
@@ -436,7 +435,7 @@ const SentimentAnalysis = () => {
                             )}
                             {results.text.model === 'llm' && (
                                 <div className="mt-2">
-                                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full text-xs text-white font-bold">
+                                    <span className="inline-flex items-center gap-2 bg-linear-to-r from-purple-600 to-blue-600 px-3 py-1 rounded-full text-xs text-white font-bold">
                                         🤖 DeepSeek V3
                                     </span>
                                 </div>
