@@ -29,7 +29,7 @@ except:
 
 app = FastAPI(title="Multi-Modal Sentiment Analyzer API with LLM")
 # Line 29-35: Update CORS Configuration
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://moodlens.netlify.app')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://projectaura7.netlify.app')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

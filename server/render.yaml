@@ -8,6 +8,6 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: FRONTEND_URL
-        value: https://moodlens.netlify.app
+        value: https://projectaura7.netlify.app
       - key: PYTHON_VERSION
         value: 3.11.0
