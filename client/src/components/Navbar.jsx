@@ -36,7 +36,7 @@ const Navbar = () => {
                     </svg>
                 </div>
                 <h2 className="text-white text-sm sm:text-base lg:text-lg font-bold leading-tight tracking-[-0.015em]">
-                    Sentiment Analyzer
+                    AURA
                 </h2>
             </div>
 
