@@ -15,7 +15,7 @@
 
 *Unlock the power of AI-driven sentiment analysis across text and images!*
 
-[🌐 Live Demo](#) | [📖 Documentation](#) | [🐛 Report Bug](https://github.com/yourusername/ai-sentiment-analyzer/issues) | [✨ Request Feature](https://github.com/yourusername/ai-sentiment-analyzer/issues)
+[🌐 Live Demo](https://projectaura7.netlify.app/) | [📖 Documentation](#) | [🐛 Report Bug](https://github.com/yourusername/ai-sentiment-analyzer/issues) | [✨ Request Feature](https://github.com/yourusername/ai-sentiment-analyzer/issues)
 
 </div>
 
